@@ -1,49 +1,60 @@
-# LyricCode AI — versão web para Vercel e celular
+# LyricCode Studio — revisão 2
 
-Site estático sem backend e sem necessidade de Python no Vercel. O projeto foi adaptado do LyricCode Studio/Python: **áudio → Whisper no navegador → tempos aproximados das palavras → frases sincronizadas → animação de código → vídeo vertical com a música original**.
+Projeto estático para Vercel. Sem chave de API. O áudio é processado no aparelho.
 
-## Publicar na Vercel sem GitHub, terminal ou instalar nada
+## Atualizar seu site
 
-1. Baixe o arquivo **LyricCode-Vercel-Celular.zip** (contendo `index.html`, `transcriber.worker.js` e `vercel.json` na raiz).
-2. Abra **https://vercel.com/drop** e entre na sua conta Vercel.
-3. Arraste o **ZIP inteiro** para a página, escolha um nome e clique em **Deploy**.
-4. O Vercel Drop publica um site estático sem build e gera um link `*.vercel.app`.
-5. Abra esse link no celular e selecione uma música.
+1. Extraia este ZIP.
+2. No repositório usado pelo seu projeto Vercel, substitua os arquivos da raiz pelos deste pacote. O arquivo principal precisa se chamar **index.html** (não index(3).html).
+3. Inclua também **timing.js** e **transcriber.worker.js** na mesma pasta.
+4. Faça o commit. Se seu projeto Vercel já estiver ligado a esse repositório, aguarde o deploy. Para importar um repositório novo, escolha um projeto estático, sem comando de build.
+5. Recarregue o site no celular para obter a versão nova.
 
-**Alternativa via GitHub:** extraia os arquivos, envie-os para um repositório, importe em https://vercel.com/new e selecione **Other**, sem comandos de build. 
+## Usar
 
-**Nota:** um novo upload pelo Vercel Drop cria um novo projeto; para atualizações automáticas, depois conecte o projeto a um repositório Git.
+Música → escolher áudio → escolher idioma/modelo → Transcrever.
+Letra → ouvir as frases, corrigir texto/segundos → Aplicar letra se alterou a caixa principal.
+Visual → conferir animação e ajustar paleta, movimento e tamanho.
+Exportar → confirmar que ouviu/revisou → Gerar vídeo. Mantenha a aba aberta.
 
+Base é o modelo padrão. Small exige mais download, RAM e processamento; use preferencialmente no computador. Tiny é uma alternativa leve, com menor capacidade. Modelo maior não garante letra correta em música.
 
-## Como usar no celular
+Se já tem a letra correta, cole-a e marque os inícios das frases ouvindo a música. Texto sem horários NÃO é espalhado automaticamente pela duração do áudio. LRC traz início de frase; isso não equivale a alinhamento de cada palavra.
 
-1. Toque **Escolher música** e selecione um áudio do seu aparelho.
-2. O Whisper inicia automaticamente. Na primeira vez, ele baixa o modelo Tiny (precisa de boa conexão, espaço e memória). **Não consulta sites de letras**. O áudio é processado localmente no navegador.
-3. Reveja e ajuste a letra; pode importar um `.lrc` ou marcar o início das frases manualmente.
-4. Ajuste paleta e efeitos, veja a prévia e toque em **Gerar vídeo**.
-5. Deixe a aba **aberta, com a tela acesa** até terminar. O resultado será baixado pelo navegador.
+O editor mostra segundos absolutos por frase. O botão ▶ ouve a região escolhida. Alterar somente um horário desloca os tempos das palavras daquela frase. Alterar seu texto invalida os antigos tempos por palavra; essa frase passa a usar uma digitação visual a partir de seu início.
 
-**Formatos:** Safari em iPhone pode exportar MP4/H.264/AAC. Chrome Android geralmente exporta WebM/VP8-9/Opus. O formato final depende da versão do navegador e da disponibilidade dos codecs. O site **não promete converter WebM em MP4 no servidor**, porque é hospedagem estática. A gravação é em tempo real (um vídeo de 3 min demora aproximadamente 3 min para registrar).
+Salvar projeto exporta JSON com letra, tempos por palavra, deslocamento e paleta. Para reabrir, escolha o mesmo arquivo de áudio e depois Abrir projeto. O áudio não está dentro do JSON. LRC/SRT não preservam tempos de cada palavra; use JSON para preservar essa informação.
 
-## Limites técnicos e privacidade
+## Correções
 
-- O **Python Faster-Whisper e Demucs não executam na Vercel** neste projeto. A versão web usa Transformers.js + modelo Whisper convertido para ONNX, executado com WebAssembly dentro de um Web Worker no aparelho. Não há chave ou custo de API de IA.
-- A primeira utilização requer acesso a `cdn.jsdelivr.net` (biblioteca) e `huggingface.co` (pesos do modelo). Esses fornecedores **recebem requisições do navegador para baixar código/modelos**, mas o arquivo de áudio não é enviado para eles pelo aplicativo.
-- A IA pode errar bastante com música cantada, instrumentos altos, reverb, coros, intervalos sem voz ou idiomas misturados. **Os tempos por palavra são aproximados**, mesmo quando o modelo funciona. Não foi integrado Demucs no navegador, para evitar download e consumo de memória ainda maiores.
-- Celulares com pouca RAM, Safari antigo ou formatos de áudio não suportados podem não conseguir transcrever ou exportar. Use **Whisper Tiny**, vídeo **720p**, a opção **Importar LRC** e, se necessário, a versão desktop Python.
-- A interface permite corrigir a letra, aplicar `.lrc`, ajustar deslocamento e salvar legendas `.lrc` / `.srt` antes de exportar.
-- Não há upload do áudio ou armazenamento em backend. O navegador gerencia seu arquivo local; o vídeo exportado fica no aparelho.
-- A publicação de músicas comerciais com o vídeo depende das licenças/direitos aplicáveis.
+- Preserva os tempos por palavra até o renderizador; a versão anterior os descartava.
+- Recusa timestamps ausentes/inválidos em vez de inventar um bloco para a música inteira.
+- Remove repetições idênticas no mesmo instante entre blocos, sem apagar refrões repetidos em outros momentos.
+- Mantém o texto literal da letra no código; antes parte dele era transformada em identificadores sem acentos.
+- Base por padrão, opção Small e checagem de áudio silencioso.
+- Cancelamento encerra worker e promessa pendente; troca de arquivo invalida tarefas anteriores.
+- Limites de 100 MB por entrada, 6 minutos decodificados e 180 MB de gravação em memória.
+- Editor em quatro etapas, campos maiores e área de prévia compacta em celular.
+- Animação inspirada na referência: fundo escuro, partículas, cursor âmbar, código com sintaxe colorida, movimento de câmera e linhas antigas desfocadas. Não é reprodução idêntica quadro a quadro.
+- Sem teclado, cabeçalho ou marcação de resolução por padrão dentro do vídeo.
+- Bloqueia edição durante gravação e cancela ao ocultar a aba para evitar exportação incompleta.
+- Aplica ajuste de sincronia também às legendas exportadas e oferece link de download persistente na página após gravar.
 
-## Arquivos
+## Limites reais
 
-- `index.html`: interface responsiva, animação canvas, leitura de áudio e gravação com áudio.
-- `transcriber.worker.js`: carregamento da biblioteca e inferência Whisper em segundo plano dentro da aba.
-- `vercel.json`: configuração para site estático.
-- `manifest.webmanifest` + `favicon.svg`: ícone/instalação como atalho.
+Não existe garantia de transcrição perfeita de canto. Instrumentos, coros, efeitos e pronúncia podem confundir o Whisper. Os tempos retornados também precisam de revisão. Esta versão não tem separação automática de voz nem alinhamento fonético forçado. Small ainda é um modelo local; não substitui um serviço com modelos maiores e separação de voz.
 
-## Desenvolvimento e testes
+Whisper baixa biblioteca e pesos de jsDelivr/Hugging Face; conexão é necessária no primeiro uso. Fontes são carregadas do Google Fonts, com fallback monoespaçado. O áudio não é enviado a esses serviços pelo aplicativo.
 
-`python -m http.server 8000` na pasta; abra `http://localhost:8000` em Chrome ou Safari. Para conferir apenas a interface sem baixar o modelo, use o modo de importação de `.lrc`.
+MP4 depende dos codecs fornecidos pelo navegador; quando não há MP4, a saída pode ser WebM. Gravação em tempo real. Limites de RAM e codecs variam entre aparelhos. O limite de arquivo é checado antes da decodificação; a duração só pode ser checada depois, então arquivos comprimidos muito longos ainda podem consumir muita memória ao decodificar.
 
-**Validação:** layout e lógica locais podem ser testados sem conexão externa; a qualidade/compatibilidade de inferência Whisper em um celular físico deve ser validada diretamente no aparelho, pois não é reproduzível em todos os dispositivos.
+## Verificação desta entrega
+
+Passaram: sintaxe JavaScript, oito verificações do módulo de tempos e testes da aplicação com DOM simulado (parser LRC, offset no fim do arquivo, rejeição de horários inválidos, editor, ausência de horários inventados, chamadas de desenho e exportação de LRC).
+
+Não foram validados: inferência real de modelos externos, aparência renderizada em navegador, MP4/WebM final ou uso em aparelho físico. O navegador automatizado não iniciou por restrições do ambiente. Os testes com DOM simulado não comprovam layout ou qualidade visual.
+
+Para testar lógica: `node test-timing.cjs` e `node test-app.cjs`.
+Para servir localmente: `python -m http.server 8000`, abrir http://localhost:8000.
+
+Referência técnica do suporte a timestamps por palavra: https://huggingface.co/docs/transformers.js/v2.17.2/en/api/pipelines
