@@ -19,9 +19,9 @@ function wordsToLines(raw,duration){
 }
 function visibleCharacters(line,time){
  if(time<line.time)return 0;
- if(line.words?.length){let count=0;for(let i=0;i<line.words.length;i++){const w=line.words[i];if(time<w.start)break;if(i)count++;count+=Math.floor(w.text.length*Math.max(0,Math.min(1,(time-w.start)/Math.max(.02,w.end-w.start))));if(time<w.end)break;}return Math.min(line.text.length,count);}
+ if(line.words?.length){let count=0;for(let i=0;i<line.words.length;i++){const w=line.words[i];if(time<w.start)break;if(i)count++;count+=Math.floor(Array.from(w.text).length*Math.max(0,Math.min(1,(time-w.start)/Math.max(.02,w.end-w.start))));if(time<w.end)break;}return Math.min(Array.from(line.text).length,count);}
  // Line-only timing is deliberately an aesthetic reveal, not word alignment.
- return Math.min(line.text.length,Math.floor((time-line.time)*28));
+ return Math.min(Array.from(line.text).length,Math.floor((time-line.time)*28));
 }
 function validateLines(lines,duration){
  let prev=-1;

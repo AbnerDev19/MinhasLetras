@@ -1,60 +1,80 @@
-# LyricCode Studio — revisão 2
+# LyricCode Studio — versão 3
 
-Projeto estático para Vercel. Sem chave de API. O áudio é processado no aparelho.
+Esta atualização contém o site estático completo, sem chave de API, e uma ferramenta Python avançada opcional.
 
-## Atualizar seu site
+## Publicar / atualizar
 
-1. Extraia este ZIP.
-2. No repositório usado pelo seu projeto Vercel, substitua os arquivos da raiz pelos deste pacote. O arquivo principal precisa se chamar **index.html** (não index(3).html).
-3. Inclua também **timing.js** e **transcriber.worker.js** na mesma pasta.
-4. Faça o commit. Se seu projeto Vercel já estiver ligado a esse repositório, aguarde o deploy. Para importar um repositório novo, escolha um projeto estático, sem comando de build.
-5. Recarregue o site no celular para obter a versão nova.
+Extraia este ZIP e substitua **todos** os arquivos no repositório usado na Vercel, incluindo as pastas. Mantenha `index.html` na raiz. Não envie apenas o HTML: ele depende de `timing.js`, `styles.js`, `recorder.js`, `asr-quality.js`, `transcriber.worker.js` e `fonts/`.
 
-## Usar
+Para hospedagem estática, use preset Other, sem comando de build. A pasta `advanced` contém ferramentas de computador; ela não cria um servidor de IA na Vercel.
 
-Música → escolher áudio → escolher idioma/modelo → Transcrever.
-Letra → ouvir as frases, corrigir texto/segundos → Aplicar letra se alterou a caixa principal.
-Visual → conferir animação e ajustar paleta, movimento e tamanho.
-Exportar → confirmar que ouviu/revisou → Gerar vídeo. Mantenha a aba aberta.
+## O que mudou
 
-Base é o modelo padrão. Small exige mais download, RAM e processamento; use preferencialmente no computador. Tiny é uma alternativa leve, com menor capacidade. Modelo maior não garante letra correta em música.
+### Música inteira na exportação
 
-Se já tem a letra correta, cole-a e marque os inícios das frases ouvindo a música. Texto sem horários NÃO é espalhado automaticamente pela duração do áudio. LRC traz início de frase; isso não equivale a alinhamento de cada palavra.
+O exportador decodifica o arquivo original inteiro e reproduz um AudioBufferSourceNode exclusivo para gravar. O reprodutor da prévia, o fim da letra e o final da transcrição não encerram mais a gravação. Introdução, pausas e final instrumental continuam no vídeo.
 
-O editor mostra segundos absolutos por frase. O botão ▶ ouve a região escolhida. Alterar somente um horário desloca os tempos das palavras daquela frase. Alterar seu texto invalida os antigos tempos por palavra; essa frase passa a usar uma digitação visual a partir de seu início.
+O mesmo relógio Web Audio guia áudio e animação. A gravação começa antes da fonte tocar e só termina após o evento de fim da fonte, com uma margem de 250 ms para os últimos pacotes. Espera o último `dataavailable` antes de construir o arquivo. Pode haver cerca de 250 ms extras no final do vídeo.
 
-Salvar projeto exporta JSON com letra, tempos por palavra, deslocamento e paleta. Para reabrir, escolha o mesmo arquivo de áudio e depois Abrir projeto. O áudio não está dentro do JSON. LRC/SRT não preservam tempos de cada palavra; use JSON para preservar essa informação.
+Interrupção antecipada, erro do codec, suspensão do áudio ou estouro de memória geram erro: não há link novo de um vídeo parcial. O download é oferecido por botão ao concluir, para funcionar melhor no celular.
 
-## Correções
+Não existe mais limite de seis minutos para exportação. Existem limites de recursos: entrada de 100 MB, áudio PCM de até 512 MB após decodificação e gravação de até 180 MB. A estimativa por bitrate verifica a gravação antes de começar. O app avisa se não cabe, sem cortar a música. A verificação de PCM ocorre após decodificar; aparelhos com pouca RAM podem falhar antes dela. Mantenha a tela ligada e esta aba visível. Trocar de aba cancela a gravação para não oferecer vídeo incompleto.
 
-- Preserva os tempos por palavra até o renderizador; a versão anterior os descartava.
-- Recusa timestamps ausentes/inválidos em vez de inventar um bloco para a música inteira.
-- Remove repetições idênticas no mesmo instante entre blocos, sem apagar refrões repetidos em outros momentos.
-- Mantém o texto literal da letra no código; antes parte dele era transformada em identificadores sem acentos.
-- Base por padrão, opção Small e checagem de áudio silencioso.
-- Cancelamento encerra worker e promessa pendente; troca de arquivo invalida tarefas anteriores.
-- Limites de 100 MB por entrada, 6 minutos decodificados e 180 MB de gravação em memória.
-- Editor em quatro etapas, campos maiores e área de prévia compacta em celular.
-- Animação inspirada na referência: fundo escuro, partículas, cursor âmbar, código com sintaxe colorida, movimento de câmera e linhas antigas desfocadas. Não é reprodução idêntica quadro a quadro.
-- Sem teclado, cabeçalho ou marcação de resolução por padrão dentro do vídeo.
-- Bloqueia edição durante gravação e cancela ao ocultar a aba para evitar exportação incompleta.
-- Aplica ajuste de sincronia também às legendas exportadas e oferece link de download persistente na página após gravar.
+O navegador ainda determina os codecs: MP4 quando disponível, WebM como alternativa. Não há conversão em servidor. A duração do contêiner resultante não é verificada automaticamente; a verificação interna cobre reprodução integral e finalização do gravador, não cada pacote codificado.
 
-## Limites reais
+### Reconhecimento e timing
 
-Não existe garantia de transcrição perfeita de canto. Instrumentos, coros, efeitos e pronúncia podem confundir o Whisper. Os tempos retornados também precisam de revisão. Esta versão não tem separação automática de voz nem alinhamento fonético forçado. Small ainda é um modelo local; não substitui um serviço com modelos maiores e separação de voz.
+- Blocos de 20 segundos com até quatro segundos extras de contexto de cada lado, percorrendo o áudio até o fim.
+- Cada bloco devolve tempos locais convertidos em tempos absolutos.
+- Atribuição nas bordas por ponto médio e remoção de duplicatas muito próximas. Mudanças de reconhecimento nas bordas ainda podem exigir revisão.
+- Repetição única de blocos que apresentam falha transitória; falha persistente não aplica resultado parcial.
+- Progresso por bloco e timeout de dez minutos sem progresso.
+- Avisos para horários inválidos, palavras muito longas, repetições e blocos sem reconhecimento. São heurísticas, não probabilidades de acerto.
+- Base por padrão, opções Small e Tiny. Small exige mais memória e pode ajudar, mas não garante acerto.
+- Entrada opcional de voz isolada com a mesma linha do tempo. A exportação usa sempre a música original. A duração é checada; o app não detecta automaticamente deslocamento entre as duas gravações.
+- Revisão de início/fim por palavra, além dos ajustes por frase.
 
-Whisper baixa biblioteca e pesos de jsDelivr/Hugging Face; conexão é necessária no primeiro uso. Fontes são carregadas do Google Fonts, com fallback monoespaçado. O áudio não é enviado a esses serviços pelo aplicativo.
+A análise no navegador suporta até 20 minutos. Não altera a duração da exportação. Não foram inventados tempos para texto sem alinhamento. Palavras sem tempos válidos podem ficar fora das frases: os avisos pedem revisão. O usuário pode corrigir a letra e marcar os horários.
 
-MP4 depende dos codecs fornecidos pelo navegador; quando não há MP4, a saída pode ser WebM. Gravação em tempo real. Limites de RAM e codecs variam entre aparelhos. O limite de arquivo é checado antes da decodificação; a duração só pode ser checada depois, então arquivos comprimidos muito longos ainda podem consumir muita memória ao decodificar.
+### Modo avançado opcional
 
-## Verificação desta entrega
+`advanced/analyze.py` combina Whisper large-v3 com alinhamento fonético WhisperX/wav2vec2. Pode separar voz com Demucs e realinhar segmentos cujo texto você corrigiu. Consulte `advanced/LEIA-ME.md`.
 
-Passaram: sintaxe JavaScript, oito verificações do módulo de tempos e testes da aplicação com DOM simulado (parser LRC, offset no fim do arquivo, rejeição de horários inválidos, editor, ausência de horários inventados, chamadas de desenho e exportação de LRC).
+Este modo roda em computador/servidor com Python, FFmpeg e modelos instalados; não roda automaticamente no celular nem na Vercel. Importe seu resultado em Letra → Importar análise avançada. Não há API remota já configurada.
 
-Não foram validados: inferência real de modelos externos, aparência renderizada em navegador, MP4/WebM final ou uso em aparelho físico. O navegador automatizado não iniciou por restrições do ambiente. Os testes com DOM simulado não comprovam layout ou qualidade visual.
+### Linguagens e animações
 
-Para testar lógica: `node test-timing.cjs` e `node test-app.cjs`.
-Para servir localmente: `python -m http.server 8000`, abrir http://localhost:8000.
+Escolha separadamente na etapa Visual:
 
-Referência técnica do suporte a timestamps por palavra: https://huggingface.co/docs/transformers.js/v2.17.2/en/api/pipelines
+| Linguagens | Animações |
+|---|---|
+| Python, JavaScript, TypeScript, Java, C++, Rust, HTML e SQL | Câmera flutuante, Terminal, Editor em rolagem, Frase em destaque |
+
+São 32 combinações. A letra é representada como texto dentro da sintaxe escolhida; aspas, símbolos HTML e apóstrofos são escapados conforme o estilo. O código é visual, não executa a letra. A fonte monoespaçada do vídeo acompanha o pacote, com licença em `fonts/LICENSE.txt`.
+
+Salvar projeto guarda também linguagem e animação. Projetos JSON v2 continuam aceitos; novos usam v3. LRC/SRT não preservam horários palavra por palavra: use o projeto JSON para isso.
+
+## Testes e limites da validação
+
+Passaram os testes de lógica em Node:
+
+```sh
+node test-timing.cjs
+node test-quality.cjs
+node test-recorder.cjs
+node test-app.cjs
+```
+
+Eles cobrem tempos, bordas entre blocos, repetição de refrão, escaping das oito linguagens, chamadas de desenho das 32 combinações, editor de palavras e máquina de estados do gravador. O teste do gravador simula Web Audio/MediaRecorder e verifica duração completa, último pacote, encerramento antecipado, cancelamento, orçamento de memória e erro de codec.
+
+Os quatro estilos foram renderizados com canvas nativo e inspecionados visualmente. Isso não valida a interface HTML/CSS em um navegador real.
+
+Não foram executados nesta entrega: modelos reais de transcrição/WhisperX/Demucs, browser em celular físico ou gravação MP4/WebM real. Portanto não há garantia de infalibilidade nem medição de melhoria de precisão. Instrumentos, notas sustentadas e coros ainda podem causar erros; revise os trechos sinalizados.
+
+Para servir localmente: `python -m http.server 8000`, abrir http://localhost:8000. Downloads de modelos usam Hugging Face/jsDelivr, e a interface mantém a fonte opcional do Google Fonts. O áudio não é enviado a esses serviços pelo aplicativo.
+
+Referências técnicas:
+- https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/stop
+- https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/dataavailable_event
+- https://github.com/m-bain/whisperX
+- https://github.com/facebookresearch/demucs

@@ -1,0 +1,3 @@
+whisperx>=3.7,<4
+# Optional: only required with --separate
+# Install separately: pip install demucs==4.0.1
