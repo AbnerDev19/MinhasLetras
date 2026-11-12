@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Letra em código</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&display=swap">
+<style>
+:root{--bg:#050507;--panel:#111116;--text:#e8e8ee;--muted:#8a8a96;--accent:#ff5a7a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:1000px;margin:0 auto;padding:16px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
+.panel{flex:1 1 280px;max-width:420px;background:var(--panel);border-radius:14px;padding:16px}
+h1{font-size:18px;margin:0 0 6px}
+p.h{color:var(--muted);font-size:13px;margin:0 0 12px;line-height:1.45}
+textarea{width:100%;height:190px;background:#0a0a0e;color:var(--text);border:1px solid #2a2a33;border-radius:10px;padding:10px;font:14px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+input[type=range]{width:100%}
+input[type=file]{width:100%;font-size:13px;color:var(--muted)}
+button{margin-top:10px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+button.s{background:#2a2a33}
+.row{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:12px}
+#st{margin-top:12px;font-size:13px;color:var(--text);min-height:36px;line-height:1.4}
+.stage{--fs:16px;width:min(360px,92vw);aspect-ratio:9/16;background:#000;border-radius:14px;position:relative;overflow:hidden;border:1px solid #1c1c24;--c1:#ff9e64;--c2:#7ab8ff;--c3:#fff;--c4:#ffd866;--c5:#7ec07e;--cr:#ff6b8a}
+.stage.red{--c1:#ff3b3b;--c2:#fff;--c4:#ff3b3b;--c5:#ff7a7a;--cr:#ff2d2d}
+.code{position:absolute;left:14%;right:0;top:46%;transform:translateY(-50%);font:800 var(--fs)/2.15 "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+.blk{transition:transform .15s linear}
+.ln{position:relative;opacity:0;color:#fff}
+.ln.cur{opacity:1;text-shadow:0 0 10px rgba(255,255,255,.25)}
+.ln.p1{opacity:.5;filter:blur(.5px);font-weight:500}
+.ln.p2{opacity:.28;filter:blur(.8px);font-weight:500}
+.ln.p3{opacity:.12;filter:blur(1.2px);font-weight:500}
+.gn{position:absolute;left:-9%;font-size:.4em;color:#888;font-weight:500}
+.ln:not(.cur) .gn{display:none}
+.fn{color:var(--c1)}.ob{color:#fff}.ky{color:var(--c2)}.st{color:var(--c3)}.br{color:var(--c4)}.cm{color:var(--c5);font-style:italic}.gl{color:var(--cr)}
+.caret{display:inline-block;width:.55em;height:1.05em;background:var(--cr);border-radius:3px;vertical-align:text-bottom;margin-left:.3em;box-shadow:0 0 12px var(--cr);animation:b 1s steps(1) infinite}
+@keyframes b{50%{opacity:.15}}
+body.clean .panel{display:none}
+body.clean .wrap{padding:0}
+body.clean .stage{width:min(100vw,calc(100vh*9/16));border-radius:0;border:0}
+#tap{display:none;position:fixed;inset:0;z-index:5}
+body.clean.rec #tap{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage"><div class="code" id="code"><div class="blk" id="blk"></div></div></div>
+  <div class="panel">
+    <h1>Letra em código</h1>
+    <p class="h">Cole a letra, uma frase por linha. Escreva <b>#vermelho</b> numa linha para virar vermelho dali em diante, <b>#colorido</b> para voltar. Linhas com // viram comentário.</p>
+    <textarea id="txt" placeholder="Cole a letra aqui…"></textarea>
+    <label>Música (opcional, fica só no seu navegador)</label>
+    <input type="file" id="aud" accept="audio/*">
+    <label>Velocidade ao gravar (ms por letra)</label>
+    <input type="range" id="spd" min="30" max="160" value="75">
+    <label>Ajuste fino do atraso na reprodução: <span id="offv">0,00 s</span></label>
+    <input type="range" id="off" min="-100" max="100" value="0">
+    <div class="row"><input type="checkbox" id="clean" checked><label for="clean" style="margin:0">Tela limpa ao gravar (esconde o painel)</label></div>
+    <button id="rec">● Gravar tempos: toque no início de cada frase</button>
+    <button id="play">▶ Tocar sincronizado</button>
+    <button class="s" id="stop">Parar</button>
+    <div id="st">1) Cole a letra. 2) Carregue a música. 3) Grave os tempos tocando na tela (ou Espaço) quando cada frase começar.</div>
+  </div>
+</div>
+<div id="tap"></div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var stage=$('stage'),code=$('code'),blk=$('blk'),txt=$('txt'),spd=$('spd'),off=$('off'),st=$('st');
+var CARET='<span class="caret"></span>',GL='#$%&@X/\\*+=?!1b0';
+var items=[],times=[],mode='idle',curLine=null,audio=null,t0=0,timer=null,idx=0;
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function fit(){stage.style.setProperty('--fs',(stage.clientWidth*0.049)+'px')}
+window.addEventListener('resize',fit);fit();
+function parse(){
+  var red=false;items=[];
+  txt.value.split('\n').forEach(function(l){
+    var t=l.trim();if(!t)return;
+    if(/^#vermelho/i.test(t)){red=true;return}
+    if(/^#colorido/i.test(t)){red=false;return}
+    items.push({text:t,red:red});
+  });
+}
+function slug(a){return a.join('_').replace(/[^\p{L}\p{N}_]/gu,'')||'_'}
+function toCode(t,i){
+  if(t.indexOf('//')===0)return [['cm',t]];
+  var w=t.split(/\s+/),n=w.length,h=Math.ceil(n/2);
+  if(n<=2)return [['br','{ '],['ky',slug([w[0]])+': '],['st','"'+(w[1]||'…')+'"'],['br',' };']];
+  if(n<=4)return [['br','{ '],['ky',slug(w.slice(0,h))+': '],['st','"'+w.slice(h).join(' ')+'"'],['br',' };']];
+  var a=i%2===0;
+  var head=a?[['ob',slug([w[0]])],['br','.'],['fn',slug([w[1]])]]:[['fn',slug([w[0]])]];
+  var arg=a?w.slice(2,h):w.slice(1,h);
+  return head.concat([['br','( '],['st','"'+slug(arg)+'"'],['br',' ){ '],['ky',slug([w[h]])+': '],['st','"'+w.slice(h+1).join(' ')+'"'],['br',' };']]);
+}
+function flat(parts){var o=[];parts.forEach(function(p){p[1].split('').forEach(function(c){o.push({c:c,cls:p[0]})})});return o}
+function restyle(){
+  while(blk.children.length>4)blk.removeChild(blk.firstChild);
+  var k=blk.children.length;
+  Array.prototype.forEach.call(blk.children,function(c,j){var d=k-1-j;c.className='ln '+(d===0?'cur':'p'+d)});
+}
+function shift(div){
+  var c=div.querySelector('.caret');if(!c)return;
+  var need=c.offsetLeft+c.offsetWidth,W=code.clientWidth*0.9;
+  blk.style.transform='translateX('+(-Math.max(0,need-W))+'px)';
+}
+async function startLine(i,dur){
+  if(curLine)curLine.fin=true;
+  var it=items[i];stage.classList.toggle('red',it.red);
+  var div=document.createElement('div');
+  div.innerHTML='<span class="gn">'+(i+1)+'</span><span class="tx"></span>';
+  blk.appendChild(div);restyle();
+  var chars=flat(toCode(it.text,i)),tx=div.querySelector('.tx');
+  var L={fin:false};curLine=L;
+  var base=dur?Math.max(25,dur*1000/chars.length):+spd.value,html='';
+  for(var k=0;k<chars.length&&!L.fin;k++){
+    var ch=chars[k];
+    if(ch.c!==' '&&base>45){
+      tx.innerHTML=html+'<span class="gl">'+esc(GL[Math.floor(Math.random()*GL.length)])+'</span>'+CARET;shift(div);
+      await sleep(Math.min(70,base*.5));if(L.fin)break;
+    }
+    html+='<span class="'+ch.cls+'">'+esc(ch.c)+'</span>';
+    tx.innerHTML=html+CARET;shift(div);
+    await sleep(base*(.6+Math.random()*.8));
+  }
+  tx.innerHTML=chars.map(function(ch){return '<span class="'+ch.cls+'">'+esc(ch.c)+'</span>'}).join('')+(curLine===L?CARET:'');
+}
+function now(){return audio?audio.currentTime:(performance.now()-t0)/1000}
+function reset(){
+  mode='idle';clearInterval(timer);if(curLine)curLine.fin=true;curLine=null;
+  blk.innerHTML='';blk.style.transform='none';idx=0;
+  document.body.classList.remove('rec');
+}
+function stop(msg){
+  clearInterval(timer);if(audio)audio.pause();
+  if(curLine)curLine.fin=true;
+  mode='idle';document.body.classList.remove('clean','rec');
+  if(msg)st.textContent=msg;
+}
+function begin(cb){
+  parse();
+  if(!items.length){st.textContent='Cole a letra primeiro.';return false}
+  reset();
+  if($('clean').checked)document.body.classList.add('clean');
+  fit();
+  if(audio){audio.currentTime=0;audio.play();t0=0;cb()}
+  else{
+    var n=3;st.textContent='Sem música carregada: comece a música quando chegar em 0…';
+    (function c(){if(n>0){st.textContent='Começa em '+n+'…';n--;setTimeout(c,1000)}else{t0=performance.now();cb()}})();
+  }
+  return true;
+}
+function tap(){
+  if(mode!=='rec'||idx>=items.length)return;
+  times[idx]=now();startLine(idx,null);idx++;
+  st.textContent='Frase '+idx+' de '+items.length+(idx===items.length?' (última). Toque em Parar quando acabar.':'');
+  if(idx===items.length)setTimeout(function(){if(mode==='rec')stop('Tempos gravados! Agora clique em “Tocar sincronizado”.')},4000);
+}
+$('rec').onclick=function(){
+  times=[];
+  begin(function(){mode='rec';document.body.classList.add('rec');st.textContent='Gravando: toque quando a 1ª frase começar.'});
+};
+$('play').onclick=function(){
+  parse();
+  if(times.length<items.length){st.textContent='Grave os tempos primeiro (toque em cada frase).';return}
+  begin(function(){
+    mode='play';var o=off.value/100;
+    timer=setInterval(function(){
+      if(idx<items.length&&now()>=times[idx]+o){
+        var gap=idx+1<items.length?times[idx+1]-times[idx]:null;
+        var n=items[idx].text.length;
+        var dur=gap?Math.min(Math.max(gap*0.75,n*0.035),n*0.14):null;
+        startLine(idx,dur);idx++;
+      }
+      if(idx>=items.length&&now()>times[items.length-1]+o+5)stop('Fim.');
+    },15);
+  });
+};
+$('stop').onclick=function(){stop('Parado.')};
+$('tap').addEventListener('pointerdown',tap);
+stage.addEventListener('pointerdown',tap);
+document.addEventListener('keydown',function(e){
+  if(e.code==='Escape')stop('Parado.');
+  if((e.code==='Space'||e.code==='Enter')&&mode==='rec'&&e.target.tagName!=='TEXTAREA'){e.preventDefault();tap()}
+});
+off.oninput=function(){$('offv').textContent=(off.value/100).toFixed(2).replace('.',',')+' s'};
+$('aud').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    audio=new Audio(r.result);
+    audio.onloadedmetadata=function(){st.textContent='Música carregada ('+Math.round(audio.duration)+' s).'};
+    audio.onerror=function(){audio=null;st.textContent='Não consegui carregar esse áudio. Tente um MP3 menor ou toque a música em outro aparelho.'};
+  };
+  r.onerror=function(){st.textContent='Erro ao ler o arquivo.'};
+  r.readAsDataURL(f);
+};
+})();
+</script>
+</body>
+</html>
