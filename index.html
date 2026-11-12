@@ -4,11 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#080b13">
-<title>LyricCode Studio — música vira vídeo</title>
+<title>LyricCode AI — Música vira vídeo no celular</title>
+<meta name="description" content="Transforme suas músicas em vídeos verticais animados com transcrição de IA direto no navegador. Sem servidores de letras.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js" defer></script>
+
 <style>
 :root { color-scheme:dark; --bg:#090d15; --panel:#111724; --panel2:#151d2b; --stroke:#2a3445; --stroke2:#39475c; --fg:#edf1f8; --mute:#8f9db2; --accent:#fa557e; --a2:#7b8dff; --good:#74ddad; --danger:#fa8293; }
 * {box-sizing:border-box}
@@ -41,33 +46,68 @@ textarea{min-height:150px;padding:11px 12px;resize:vertical;line-height:1.65;fon
 kbd{border:1px solid #44536a;border-radius:4px;padding:1px 5px;background:#2b3648;font-family:'JetBrains Mono',monospace;font-size:10px}
 @media(max-width:1050px){.layout{grid-template-columns:1fr;gap:20px}.preview-wrap{position:static}.stage-frame{padding:15px}canvas{max-height:62vh;width:auto;max-width:100%}.controls{max-width:780px;margin:auto;width:100%}}
 @media(max-width:520px){.shell{padding:18px 12px 35px}.block{padding:16px}h1{font-size:20px}.grid-2{grid-template-columns:1fr}.stage-frame{padding:10px}canvas{max-height:58vh}.header-pill{font-size:9px}.btn-group{flex-wrap:wrap}}
+
+.mobile-action,.mobile-dock{display:none}
+#aiProgressWrap .progress-track{height:8px}
+#aiProgressText{line-height:1.45}
+#aiProgressWrap.visible{display:block}
+#mobilePick{min-width:172px}
+@media(max-width:700px){
+  .shell{padding:18px 12px 105px}
+  header{margin-bottom:12px}
+  .brand{align-items:flex-start;gap:10px}
+  .mark{height:42px;width:42px;border-radius:13px}
+  h1{font-size:21px}
+  .subtitle{max-width:260px;line-height:1.4}
+  .header-pill{display:none}
+  .mobile-action{display:flex;gap:10px;align-items:center;margin-bottom:12px;background:#131d2d;border:1px solid #2a3851;border-radius:14px;padding:11px}
+  .mobile-action span{font-size:11px;color:#a3b4cd;line-height:1.4}
+  .layout{gap:15px}
+  .stage-frame{min-height:0;padding:8px;border-radius:14px}
+  canvas{max-height:56vh;width:auto;max-width:100%;border-radius:6px}
+  .preview-header{margin-bottom:7px}
+  .preview-footer{padding:10px 12px;margin-top:8px}
+  .block{padding:15px;border-radius:14px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .field{margin-top:10px}
+  .field input,.field select{font-size:12px;padding:9px 8px}
+  .btn-group{flex-wrap:wrap}
+  .mobile-dock{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;position:fixed;bottom:0;left:0;right:0;z-index:100;padding:10px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-right));background:rgba(10,16,29,.95);border-top:1px solid #36425a;backdrop-filter:blur(15px)}
+  .mobile-dock button{background:#243149;color:#e8f1ff;border:1px solid #3c506e;border-radius:11px;height:46px;font-weight:700;font-size:12px}
+  #dockExport{background:linear-gradient(100deg,#f65586,#a055b4);border-color:transparent;color:white}
+}
+@media (max-width:350px){.grid-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header>
- <div class="brand"><div class="mark">&lt;/&gt;</div><div><h1>LyricCode <span style="color:#ff7799">Studio</span></h1><p class="subtitle">Transforme música em vídeo de código sincronizado, pronto para Reels e TikTok.</p></div></div>
- <span class="header-pill">● VIDEO CREATOR · 9:16</span>
+ <div class="brand"><div class="mark">&lt;/&gt;</div><div><h1>LyricCode <span style="color:#ff7799">Studio</span></h1><p class="subtitle">Envie sua música. A IA local extrai as palavras, sincroniza e anima.</p></div></div>
+ <span class="header-pill">● MOBILE CREATOR · 9:16</span>
 </header>
+<div class="mobile-action"><button id="mobilePick" class="btn btn-primary">♫ Escolher música</button><span>IA no navegador · Sem buscar letra em sites</span></div>
 <div class="layout">
  <section class="preview-wrap" aria-label="Prévia do vídeo">
-  <div class="preview-header"><strong>PRÉ-VISUALIZAÇÃO AO VIVO</strong><span class="format">1080 × 1920 / vertical</span></div>
+  <div class="preview-header"><strong>PRÉ-VISUALIZAÇÃO AO VIVO</strong><span class="format">VÍDEO VERTICAL / 9:16</span></div>
   <div class="stage-frame"><canvas id="videoCanvas" width="1080" height="1920" aria-label="Prévia da animação do vídeo"></canvas></div>
   <div class="preview-footer"><div class="timeline-row"><span id="currentTime">00:00</span><span id="totalTime">00:00</span></div><input id="seek" class="seek" type="range" min="0" max="1000" value="0" aria-label="Progresso da música"><div class="transport"><button id="back" class="ghost-btn" title="Voltar 5 segundos">− 5s</button><button id="play" class="circle" title="Reproduzir ou pausar">▶</button><button id="forward" class="ghost-btn" title="Avançar 5 segundos">+ 5s</button></div></div>
  </section>
  <section class="controls" aria-label="Controles de edição">
   <div class="block"><div class="section-title"><h2><span class="num">01</span> Adicione sua música</h2><span class="tag">MP3 · WAV · M4A</span></div>
-   <label id="drop" class="drop"><input id="audioFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac"><span class="drop-icon">♫</span><strong>Escolha um arquivo ou arraste aqui</strong><small>A música fica no seu computador; a busca usa título e artista.</small><span class="file-name" id="fileName"></span></label>
-   <div class="grid-2"><label class="field"><span>Nome da música</span><input id="titleInput" type="text" placeholder="Ex.: Viva la Vida" autocomplete="off"></label><label class="field"><span>Artista</span><input id="artistInput" type="text" placeholder="Ex.: Coldplay" autocomplete="off"></label></div>
-   <button id="search" class="btn btn-primary btn-full">✦ Buscar letra + sincronização</button>
-   <div id="musicStatus" class="status">Comece carregando uma música. O título e artista serão detectados quando possível.</div>
+   <label id="drop" class="drop"><input id="audioFile" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac"><span class="drop-icon">♫</span><strong>Escolha um arquivo ou arraste aqui</strong><small>MP3, M4A ou WAV do seu celular. O áudio não é enviado a servidores.</small><span class="file-name" id="fileName"></span></label>
+   <div class="grid-2"><label class="field"><span>Título do arquivo / vídeo</span><input id="titleInput" type="text" placeholder="Nome da música" autocomplete="off"></label><label class="field"><span>Artista (opcional)</span><input id="artistInput" type="text" placeholder="Para nomear seu vídeo" autocomplete="off"></label></div>
+   <div class="grid-2"><label class="field"><span>Idioma do vocal</span><select id="language"><option value="pt">Português</option><option value="en">Inglês</option><option value="es">Espanhol</option><option value="auto">Detectar automaticamente</option></select></label><label class="field"><span>Modelo de IA</span><select id="model"><option value="tiny">Whisper Tiny · celular</option><option value="base">Whisper Base · mais pesado</option></select></label></div>
+   <button id="search" class="btn btn-primary btn-full">✧ Transcrever e sincronizar com IA</button>
+   <button id="cancelAI" class="btn btn-secondary btn-full" style="display:none">■ Interromper IA</button>
+   <div class="progress-wrap" id="aiProgressWrap"><div class="progress-track"><div id="aiProgressFill" class="progress-fill"></div></div><div id="aiProgressText" class="progress-text">Preparando transcrição...</div></div>
+   <div id="musicStatus" class="status">Escolha uma música: a análise com IA começa automaticamente depois do carregamento.</div>
   </div>
   <div class="block"><div class="section-title"><h2><span class="num">02</span> Letra & sincronização</h2><span id="syncBadge" class="tag">AGUARDANDO</span></div>
-   <textarea id="lyrics" spellcheck="false" placeholder="A letra aparecerá aqui automaticamente. Também aceita .LRC com marcações de tempo: [00:12.20] Primeira frase"></textarea>
+   <textarea id="lyrics" spellcheck="false" placeholder="A IA escreverá a letra aqui. Revise e edite se necessário. Também aceita .LRC: [00:12.20] Primeira frase"></textarea>
    <div class="btn-group"><button id="applyLyrics" class="btn btn-secondary">✓ Aplicar letra</button><button id="importLrc" class="btn btn-secondary">↥ Importar .LRC</button></div><input type="file" id="lrcFile" accept=".lrc,.txt,text/plain" hidden>
    <div class="btn-group"><button id="tapSync" class="btn btn-outline">◉ Marcar tempos manualmente</button><button id="tapNext" class="btn btn-secondary" disabled>Marcar linha</button></div>
-   <p class="note">Se a letra não existir na base, é possível transcrever com IA local pelo pacote completo. Ao sincronizar manualmente, aperte <kbd>Espaço</kbd> no começo de cada frase.</p>
-   <button id="transcribe" class="btn btn-secondary btn-full" style="display:none">✧ Transcrever música com IA local</button>
+   <p class="note">A IA trabalha com o áudio carregado, sem consultar sites de letras. Trechos cantados podem sair errados: corrija a letra e os tempos antes de publicar. Para ajustes manuais, toque em “Marcar linha” no começo de cada frase.</p>
+   <div class="btn-group"><button id="saveLrc" class="btn btn-secondary">↓ Salvar .LRC</button><button id="saveSrt" class="btn btn-secondary">↓ Salvar .SRT</button></div>
    <div class="range-head"><label for="offset">Ajuste de sincronia</label><output id="offsetLabel">0.00 s</output></div><input id="offset" class="slider" type="range" min="-3000" max="3000" step="50" value="0">
    <div id="lyricsStatus" class="status">Aguardando letra.</div>
   </div>
@@ -79,17 +119,19 @@ kbd{border:1px solid #44536a;border-radius:4px;padding:1px 5px;background:#2b364
    <div class="range-head"><label for="fontScale">Tamanho do código</label><output id="fontLabel">100%</output></div><input id="fontScale" class="slider" type="range" min="75" max="135" value="100">
   </div>
   <div class="block"><div class="section-title"><h2><span class="num">04</span> Exporte o vídeo</h2><span class="tag synced">COM ÁUDIO</span></div>
-   <div class="grid-2"><label class="field" style="margin-top:0"><span>Arquivo final</span><select id="exportFormat"><option value="mp4">MP4 (preferencial)</option><option value="webm">WebM (compatível)</option></select></label><label class="field" style="margin-top:0"><span>Duração</span><input id="durationDisplay" disabled value="Carregue uma música"></label></div>
+   <div class="grid-2"><label class="field" style="margin-top:0"><span>Formato</span><select id="exportFormat"><option value="auto">Automático (MP4 ou WebM)</option><option value="mp4">Preferir MP4</option><option value="webm">Preferir WebM</option></select></label><label class="field" style="margin-top:0"><span>Resolução</span><select id="exportResolution"><option value="720">720 × 1280 · celular</option><option value="1080">1080 × 1920 · alta</option></select></label></div>
+   <p class="note">Duração: <span id="durationDisplay">Carregue uma música</span></p>
    <button id="export" class="btn btn-primary btn-full">⬇ Gerar vídeo vertical com música</button>
    <button id="cancelExport" class="btn btn-secondary btn-full" style="display:none">■ Cancelar exportação</button>
    <div class="progress-wrap" id="progressWrap"><div class="progress-track"><div id="progressFill" class="progress-fill"></div></div><div id="progressText" class="progress-text">Preparando...</div></div>
-   <div id="exportStatus" class="status">O vídeo é renderizado em tempo real e inclui o áudio original. Mantenha esta aba aberta durante a exportação.</div>
-   <p class="note">MP4 usa o suporte do navegador ou a conversão local com FFmpeg; quando não for possível, o site oferecerá WebM. Para preservar os direitos dos artistas, use apenas músicas que você pode publicar.</p>
+   <div id="exportStatus" class="status">A gravação inclui a música original e acontece em tempo real. Mantenha a tela ligada e a aba aberta.</div>
+   <p class="note">No iPhone, o navegador pode gravar em MP4; no Android, normalmente em WebM. A exportação depende do suporte do aparelho e pode não funcionar em todos os navegadores.</p>
   </div>
-  <p class="note" style="padding:0 10px">Busca de letras: <a href="https://lrclib.net" target="_blank" rel="noopener noreferrer" class="source-link">LRCLIB</a>. A disponibilidade e a precisão variam por música. A transcrição de canto por IA também pode precisar de revisão.</p>
+  <p class="note" style="padding:0 10px">O modelo Whisper é baixado do Hugging Face na primeira execução. Não há base de letras, backend ou API paga. Uma música cantada com instrumentos altos pode ser transcrita incorretamente.</p>
  </section>
 </div>
 </div>
+<div class="mobile-dock"><button id="dockMusic">♫ Música</button><button id="dockAI">✧ Transcrever</button><button id="dockExport">↓ Vídeo</button></div>
 <audio id="audio" preload="metadata" style="display:none"></audio>
 <script>
 (() => {
@@ -133,42 +175,111 @@ function setLines(lines,kind,displayText){if(!Array.isArray(lines)||!lines.lengt
  state.lines=lines.filter(l=>cap(l.text)).map(l=>({time:Number(l.time)||0,text:cap(l.text)})).sort((a,b)=>a.time-b.time);
  state.source=kind;state.tap=false;state.tapIndex=0;$('tapNext').disabled=true;$('tapSync').textContent='◉ Marcar tempos manualmente';
  if(displayText!==false)$('lyrics').value=printLrc(state.lines);
- badge(kind==='synced'?'SINCRONIZADA':kind==='transcribed'?'IA LOCAL':kind==='manual'?'MANUAL':'ESTIMADA',kind==='synced'||kind==='manual'?'synced':'estimate');
- status('lyricsStatus',kind==='synced'?`Letra sincronizada: ${state.lines.length} frases com tempos reais.`:kind==='transcribed'?`IA criou ${state.lines.length} trechos com tempos estimados. Revise as palavras e o ritmo.`:kind==='manual'?`${state.lines.length} frases sincronizadas por você.`:`${state.lines.length} frases preparadas. Tempos aproximados: use “Marcar tempos” para ajustar.`,kind==='synced'||kind==='manual'?'good':'warn');return true;
+ badge(kind==='synced'?'SINCRONIZADA':kind==='transcribed'?'WHISPER LOCAL':kind==='manual'?'MANUAL':'ESTIMADA',kind==='synced'||kind==='manual'?'synced':'estimate');
+ status('lyricsStatus',kind==='synced'?`Letra sincronizada: ${state.lines.length} frases com tempos reais.`:kind==='transcribed'?`Whisper extraiu ${state.lines.length} trechos a partir do áudio. Revise as palavras e o ritmo.`:kind==='manual'?`${state.lines.length} frases sincronizadas por você.`:`${state.lines.length} frases preparadas. Tempos aproximados: use “Marcar tempos” para ajustar.`,kind==='synced'||kind==='manual'?'good':'warn');return true;
 }
 function applyLyrics(){let txt=$('lyrics').value;const parsed=lrcParse(txt);if(!parsed.lines.length){status('lyricsStatus','A caixa de letra está vazia. Cole frases ou importe .LRC.','warn');return;}
  if(parsed.synced)setLines(parsed.lines,'synced');else setLines(estimateTimes(parsed.lines,state.duration),'estimated');}
-function setupAudio(file){if(state.fileURL)URL.revokeObjectURL(state.fileURL);audio.pause();state.file=file;state.fileURL=URL.createObjectURL(file);audio.src=state.fileURL;audio.load();state.lines=[];state.source='';state.tap=false;state.fetchToken++;
- $('fileName').textContent=file.name;$('lyrics').value='';badge('AGUARDANDO');status('musicStatus',`Áudio recebido: ${file.name}. Lendo título e artista...`);status('lyricsStatus','Buscando letra automaticamente...');
+function setupAudio(file){
+ if(state.exporting){status('musicStatus','Finalize a gravação antes de trocar de música.','warn');return;}
+ if(state.worker){state.worker.terminate();state.worker=null;}
+ state.processing=false;
+ if(state.fileURL)URL.revokeObjectURL(state.fileURL);
+ audio.pause();state.file=file;state.fileURL=URL.createObjectURL(file);audio.src=state.fileURL;audio.load();
+ state.lines=[];state.source='';state.tap=false;state.fetchToken++;
+ $('fileName').textContent=file.name;$('lyrics').value='';badge('AGUARDANDO');
  const parsed=parseFileName(file.name);$('titleInput').value=parsed.title;$('artistInput').value=parsed.artist;
- const token=state.fetchToken;
- const findNow=()=>{if(state.fetchToken===token && cap($('titleInput').value))searchLyrics(false);};
- if(window.jsmediatags){let settled=false;const done=()=>{if(!settled){settled=true;findNow();}};const tid=setTimeout(done,1700);
-  try{window.jsmediatags.read(file,{onSuccess:res=>{if(settled)return;clearTimeout(tid);const tags=res.tags||{};if(tags.title)$('titleInput').value=tags.title;if(tags.artist)$('artistInput').value=tags.artist;done();},onError:()=>{clearTimeout(tid);done();}});}catch(e){clearTimeout(tid);done();}
- }else findNow();
+ status('musicStatus',`Áudio local selecionado: ${file.name}. Preparando transcrição...`);
+ status('lyricsStatus','Aguardando o modelo Whisper identificar as palavras.');
+ updateAIProgress(3,'Recebendo áudio...');
+ // O primeiro clique do usuário já ocorreu ao escolher o arquivo.
+ audio.addEventListener('loadedmetadata',()=>startBrowserTranscription(),{once:true});
 }
-async function inspectBackend(){try{const c=new AbortController(),timer=setTimeout(()=>c.abort(),950);const r=await fetch('/api/health',{signal:c.signal});clearTimeout(timer);if(!r.ok)throw 0;const data=await r.json();state.backend=Boolean(data.local_ai);$('transcribe').style.display=state.backend?'inline-flex':'none';}catch{state.backend=false;$('transcribe').style.display='none';}}
-async function searchLyrics(force=true){if(state.exporting)return;const title=cap($('titleInput').value),artist=cap($('artistInput').value);if(!title){status('musicStatus','Informe o nome da música para buscar a letra.');return;}
- const token=++state.fetchToken;status('musicStatus',`Buscando “${title}”${artist?' · '+artist:''} na LRCLIB...`);
- const headers={'Lrclib-Client':'LyricCodeStudio/2.0 (local browser app)'};
+function updateAIProgress(percent,description){
+ $('aiProgressWrap').classList.add('visible');$('aiProgressFill').style.width=Math.max(0,Math.min(100,percent))+'%';
+ $('aiProgressText').textContent=description;
+}
+function setAIActive(active){
+ state.processing=active;$('search').disabled=active;$('cancelAI').style.display=active?'inline-flex':'none';
+ if(!active)$('aiProgressWrap').classList.remove('visible');
+}
+async function decodeAudioForWhisper(file){
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC||!window.OfflineAudioContext)throw Error('Seu navegador não oferece decodificação de áudio necessária à IA.');
+ updateAIProgress(7,'Decodificando a música no aparelho...');
+ const context=new AC();
+ let buffer;
+ try{buffer=await context.decodeAudioData(await file.arrayBuffer());}finally{await context.close().catch(()=>{});}
+ if(buffer.duration>720)throw Error('Áudio maior que 12 minutos. Corte a música ou use um arquivo mais curto.');
+ // Whisper recebe áudio mono 16 kHz. OfflineAudioContext faz o downmix e resample.
+ const offline=new OfflineAudioContext(1,Math.ceil(buffer.duration*16000),16000);
+ const source=offline.createBufferSource();source.buffer=buffer;source.connect(offline.destination);source.start();
+ const rendered=await offline.startRendering();
+ return new Float32Array(rendered.getChannelData(0));
+}
+function wordsToLines(raw,duration){
+ const words=(Array.isArray(raw)?raw:[]).map(item=>{
+   const a=Array.isArray(item.timestamp)?item.timestamp:[];
+   return {text:String(item.text||'').trim(),start:Math.max(0,Number(a[0])||0),end:Math.max(0,Number(a[1])||Number(a[0])||0)};
+ }).filter(w=>w.text && !/^\[.*\]$/.test(w.text)).sort((a,b)=>a.start-b.start);
+ if(!words.length)return [];
+ // Whisper can return complete segments instead of words on some model/runtime versions.
+ const expanded=[];
+ for(const item of words){
+   const tokens=item.text.split(/\s+/).filter(Boolean);const end=Math.max(item.start+.12,item.end);
+   if(tokens.length===1){expanded.push({...item,end});continue;}
+   for(let i=0;i<tokens.length;i++)expanded.push({text:tokens[i],start:item.start+(end-item.start)*i/tokens.length,end:item.start+(end-item.start)*(i+1)/tokens.length});
+ }
+ const lines=[];let chunk=[];
+ const flush=()=>{if(!chunk.length)return;lines.push({time:chunk[0].start,text:chunk.map(w=>w.text).join(' ')});chunk=[];};
+ for(const w of expanded){
+   if(chunk.length){const prev=chunk.at(-1),gap=w.start-prev.end,size=chunk.map(q=>q.text.length).reduce((a,b)=>a+b,0)+w.text.length+chunk.length;
+     if(gap>.8||size>49||w.end-chunk[0].start>5.5||chunk.length>=9||(/[.!?;:]$/.test(prev.text)&&gap>.1))flush();
+   }
+   chunk.push(w);
+ }
+ flush();
+ return lines.filter(l=>l.text.trim() && l.time<duration+1);
+}
+async function startBrowserTranscription(){
+ if(!state.file||state.processing||state.exporting)return;
+ const token=++state.fetchToken;
+ setAIActive(true);status('musicStatus','Extraindo a letra com Whisper no seu navegador. Não é feita nenhuma busca em sites de letras.');
  try{
-  const params=new URLSearchParams();if(artist){params.set('track_name',title);params.set('artist_name',artist);}else params.set('q',title);
-  const r=await fetch('https://lrclib.net/api/search?'+params.toString(),{headers});if(!r.ok){if(r.status===429)throw new Error('A base limitou as consultas. Tente novamente mais tarde.');throw new Error('Serviço de letra temporariamente indisponível ('+r.status+').');}
-  const matches=await r.json();if(state.fetchToken!==token)return;
-  const nd=normalize(title),na=normalize(artist);const scored=(Array.isArray(matches)?matches:[]).filter(m=>!m.instrumental&&(m.syncedLyrics||m.plainLyrics)).map(m=>{const mt=normalize(m.trackName||m.name),ma=normalize(m.artistName);let score=(mt===nd?80:mt.includes(nd)||nd.includes(mt)?30:0)+(na?(ma===na?45:ma.includes(na)||na.includes(ma)?15:-12):0);if(state.duration&&m.duration)score-=Math.min(25,Math.abs(state.duration-m.duration)*.5);if(m.syncedLyrics)score+=12;return {...m,score};}).sort((a,b)=>b.score-a.score);
-  const best=scored[0];if(!best || best.score<(artist?43:60)){status('musicStatus','Não encontrei uma correspondência confiável. Ajuste título e artista ou use a IA local.','warn');status('lyricsStatus','Sem letra na base. Você pode importar .LRC, colar a letra ou usar a IA local se disponível.','warn');if(state.backend&&state.file&&!force)await transcribe(true);return;}
-  let data=lrcParse(best.syncedLyrics||best.plainLyrics||'');if(!data.lines.length)throw new Error('A letra encontrada estava vazia.');
-  setLines(data.synced?data.lines:estimateTimes(data.lines,state.duration),data.synced?'synced':'estimated');
-  if(data.synced){state.source='synced';badge('SINCRONIZADA','synced');status('lyricsStatus',`${state.lines.length} frases com timestamps sincronizados. Confira o início na prévia.`, 'good');}
-  else{state.source='estimated';badge('ESTIMADA','estimate');status('lyricsStatus','Letra encontrada, mas sem tempos. A sincronização é aproximada; use o botão de marcação.','warn');}
-  status('musicStatus',`✓ ${best.trackName} — ${best.artistName}. ${data.synced?'Tempos sincronizados disponíveis.':'Letra encontrada sem tempos.'}`,'good');
- }catch(err){if(state.fetchToken!==token)return;status('musicStatus','Não foi possível buscar a letra: '+(err.message||err),'warn');if(!state.lines.length)status('lyricsStatus','Você pode colar a letra, importar um .LRC ou transcrever localmente.','warn');}
+   if(!window.Worker)throw Error('Este navegador não oferece Web Workers.');
+   const pcm=await decodeAudioForWhisper(state.file);
+   if(state.fetchToken!==token)return;
+   updateAIProgress(12,'Baixando e inicializando a IA (primeira vez pode exigir bastante internet)...');
+   const worker=new Worker('/transcriber.worker.js',{type:'module'});state.worker=worker;
+   const model=$('model').value,language=$('language').value;
+   await new Promise((resolve,reject)=>{
+     const timeout=setTimeout(()=>reject(new Error('A IA não respondeu. Verifique a conexão e a memória disponível.')),20*60*1000);
+     worker.onerror=e=>{clearTimeout(timeout);reject(new Error('Não foi possível carregar a biblioteca da IA. Confira a internet e tente novamente.'));};
+     worker.onmessage=e=>{
+       if(state.fetchToken!==token){clearTimeout(timeout);resolve();return;}
+       const m=e.data||{};
+       if(m.type==='progress')updateAIProgress(m.percent||20,m.message||'Processando...');
+       if(m.type==='result'){
+         clearTimeout(timeout);
+         const lines=wordsToLines(m.chunks,state.duration||pcm.length/16000);
+         if(!lines.length){reject(new Error('O Whisper não identificou palavras com tempos utilizáveis. Tente outro arquivo ou importe uma letra .LRC.'));return;}
+         setLines(lines,'transcribed');
+         status('musicStatus',`✓ Transcrição local concluída: ${lines.length} frases. Revise as palavras e a sincronização.`, 'good');
+         status('lyricsStatus','A IA extraiu a letra e os horários. Revise os versos antes de gerar o vídeo.','good');
+         resolve();
+       }
+       if(m.type==='error'){clearTimeout(timeout);reject(new Error(m.message||'Erro desconhecido na IA.'));}
+     };
+     worker.postMessage({type:'transcribe',pcm,model,language},[pcm.buffer]);
+   });
+ }catch(err){
+   if(state.fetchToken===token){status('musicStatus','Não foi possível transcrever: '+(err.message||err),'warn');status('lyricsStatus','Você ainda pode colar uma letra ou importar um arquivo .LRC. A transcrição local exige memória e download do modelo.','warn');}
+ }finally{
+   if(state.fetchToken===token){setAIActive(false);}
+   if(state.fetchToken===token && state.worker){state.worker.terminate();state.worker=null;}
+ }
 }
-async function transcribe(auto=false){if(!state.file||!state.backend||state.exporting)return;status('lyricsStatus',auto?'Letra não encontrada. Transcrevendo com IA local...':'Transcrevendo com IA local. Músicas cantadas podem exigir revisão.');$('transcribe').disabled=true;
- try{const form=new FormData();form.append('audio',state.file);const r=await fetch('/api/transcribe',{method:'POST',body:form});const result=await r.json();if(!r.ok)throw new Error(result.detail||result.error||'Falha na transcrição.');if(!Array.isArray(result.lines)||!result.lines.length)throw new Error('Nenhuma voz reconhecida.');setLines(result.lines,'transcribed');status('musicStatus',`Transcrição local concluída (${result.language||'idioma automático'}). Revise o resultado.`,'good');}
- catch(err){status('lyricsStatus','A IA local não conseguiu transcrever: '+err.message,'warn');}
- finally{$('transcribe').disabled=false;}
-}
+function cancelAI(){state.fetchToken++;if(state.worker){state.worker.terminate();state.worker=null;}setAIActive(false);status('musicStatus','Transcrição interrompida. Você pode iniciar novamente ou importar uma letra.','warn');}
 function tapStart(){if(!state.file){status('lyricsStatus','Carregue o áudio primeiro para marcar os tempos.','warn');return;}
  let parsed=lrcParse($('lyrics').value);if(!parsed.lines.length){status('lyricsStatus','Cole a letra antes de marcar tempos.','warn');return;}
  if(state.tap){state.tap=false;$('tapNext').disabled=true;$('tapSync').textContent='◉ Marcar tempos manualmente';audio.pause();status('lyricsStatus','Marcação interrompida. Nenhuma alteração foi aplicada.');return;}
@@ -256,7 +367,7 @@ function draw(t){state.frame++;let p=palettes[$('theme').value]||palettes.pink,i
 let lastFrame=0;
 function loop(ts){requestAnimationFrame(loop);if(ts-lastFrame<1000/30)return;lastFrame=ts;
  if(state.analyser&&!audio.paused){state.analyser.getByteFrequencyData(state.freqs);let total=0;for(let i=1;i<70;i++)total+=state.freqs[i];let v=clamp(total/(69*170),0,1);state.level=state.level*.76+v*.24;}else state.level*=.94;
- const t=currentVisualTime();draw(t);$('currentTime').textContent=fmt(t);$('totalTime').textContent=fmt(state.duration);$('seek').value=state.duration?Math.floor(t/state.duration*1000):0;$('play').textContent=audio.paused?'▶':'Ⅱ';
+ const t=currentVisualTime();draw(t);if(state.exportCtx&&state.exportCanvas){state.exportCtx.drawImage(c,0,0,state.exportCanvas.width,state.exportCanvas.height);}$('currentTime').textContent=fmt(t);$('totalTime').textContent=fmt(state.duration);$('seek').value=state.duration?Math.floor(t/state.duration*1000):0;$('play').textContent=audio.paused?'▶':'Ⅱ';
  if(state.exporting){$('progressFill').style.width=`${state.duration?clamp(t/state.duration*100,0,100):0}%`;$('progressText').textContent=`Gravando ${fmt(t)} / ${fmt(state.duration)} — não feche esta aba`;
   if(audio.ended){finishExport();}}
 }
@@ -265,38 +376,76 @@ function filename(ext){return (ascii($('artistInput').value)+'_'+ascii($('titleI
 function saveBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function recordingType(){const list=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];return list.find(m=>MediaRecorder.isTypeSupported(m))||'';}
 function nativeMp4Type(){const list=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1.42E01E','video/mp4'];return list.find(m=>MediaRecorder.isTypeSupported(m))||'';}
-async function convertToMp4(blob){const data=new FormData();data.append('file',blob,'video.webm');status('exportStatus','Convertendo para MP4 com FFmpeg local...');$('progressText').textContent='Convertendo WebM para MP4...';const resp=await fetch('/api/convert',{method:'POST',body:data});if(!resp.ok){const t=await resp.json().catch(()=>({}));throw Error(t.detail||t.error||'FFmpeg indisponível.');}return await resp.blob();}
-async function exportVideo(){if(state.exporting)return;if(!state.file||!state.duration){status('exportStatus','Carregue um arquivo de áudio válido antes de exportar.','warn');return;}if(!state.lines.length){status('exportStatus','Encontre a letra ou aplique uma letra antes de exportar.','warn');return;}if(!window.MediaRecorder||!c.captureStream){status('exportStatus','Este navegador não grava canvas. Use Chrome ou Edge atualizado.','error');return;}
- try{setupAudioNodes();await state.ac.resume();audio.pause();audio.currentTime=0;
-  const wantMp4=$('exportFormat').value==='mp4';const native=wantMp4?nativeMp4Type():'';const mime=native||recordingType();if(!mime)throw Error('Codec de vídeo não suportado neste navegador.');
-  state.recChunks=[];state.cancelRequested=false;state.recordMime=mime;
-  let videoStream=c.captureStream(30);const track=videoStream.getVideoTracks()[0],audTracks=state.dest.stream.getAudioTracks();const merged=new MediaStream([track,...audTracks]);state.recTracks=[track];
-  const opts={mimeType:mime,videoBitsPerSecond:6500000,audioBitsPerSecond:192000};const recorder=new MediaRecorder(merged,opts);state.recorder=recorder;
-  recorder.ondataavailable=e=>{if(e.data&&e.data.size)state.recChunks.push(e.data)};
-  recorder.onerror=e=>{status('exportStatus','Falha na gravação: '+(e.error?.message||'Erro inesperado'),'error');cleanupExport();};
-  recorder.onstop=async()=>{const wasCanceled=state.cancelRequested, rec=state.recChunks.slice(),mt=state.recordMime;cleanupExport();if(wasCanceled)return;
-    if(!rec.length){status('exportStatus','Não foi possível gravar os quadros. Tente novamente.','error');return;}
-    let blob=new Blob(rec,{type:mt.split(';')[0]});const nativeMp4=blob.type==='video/mp4';let finalExt=nativeMp4?'mp4':'webm';let msg='';
-    if(wantMp4&&!nativeMp4&&state.backend){try{blob=await convertToMp4(blob);finalExt='mp4';}catch(e){msg=' Não foi possível converter em MP4 ('+e.message+'); o WebM foi mantido.';}}
-    else if(wantMp4&&!nativeMp4){msg=' Seu navegador não suporta MP4 nativo. Baixei WebM; rode o pacote completo para conversão MP4 com FFmpeg.';}
-    saveBlob(blob,filename(finalExt));status('exportStatus',`✓ Vídeo exportado: ${fmt(state.duration)}, ${finalExt.toUpperCase()}, 1080×1920, áudio incluído.${msg}`,msg?'warn':'good');
-  };
-  state.exporting=true;$('export').disabled=true;$('cancelExport').style.display='inline-flex';$('progressWrap').classList.add('visible');$('progressFill').style.width='0%';status('exportStatus','Gerando vídeo. A gravação acompanha a duração real da música...');
-  recorder.start(1000);await audio.play();
- }catch(e){state.cancelRequested=true;try{if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();}catch{}cleanupExport();status('exportStatus','Não consegui iniciar a exportação: '+e.message,'error');}
+async function exportVideo(){
+ if(state.exporting)return;
+ if(!state.file||!state.duration){status('exportStatus','Escolha uma música primeiro.','warn');return;}
+ if(!state.lines.length){status('exportStatus','A transcrição precisa estar pronta, ou você precisa aplicar uma letra.','warn');return;}
+ if(!window.MediaRecorder||!c.captureStream){status('exportStatus','Seu navegador não permite gravar o canvas. Tente Safari atualizado no iPhone ou Chrome no Android.','error');return;}
+ try{
+   setupAudioNodes();await state.ac.resume();audio.pause();audio.currentTime=0;
+   const fmt=$('exportFormat').value,mp4=nativeMp4Type(),webm=recordingType();
+   const mime=fmt==='webm'?(webm||mp4):(mp4||webm);
+   if(!mime)throw Error('Este navegador não fornece um codec de vídeo compatível.');
+   const size=Number($('exportResolution').value)||720;
+   const exportCanvas=document.createElement('canvas');exportCanvas.width=size;exportCanvas.height=Math.round(size*16/9);
+   const exportCtx=exportCanvas.getContext('2d',{alpha:false});exportCtx.imageSmoothingQuality='high';
+   state.exportCanvas=exportCanvas;state.exportCtx=exportCtx;
+   // At the moment recording starts, render our already animated 1080p preview at target resolution.
+   exportCtx.drawImage(c,0,0,exportCanvas.width,exportCanvas.height);
+   state.recChunks=[];state.cancelRequested=false;state.recordMime=mime;
+   const canvasStream=exportCanvas.captureStream(25);
+   const track=canvasStream.getVideoTracks()[0],audioTracks=state.dest.stream.getAudioTracks();
+   const combined=new MediaStream([track,...audioTracks]);state.recTracks=[track];
+   const recorder=new MediaRecorder(combined,{mimeType:mime,videoBitsPerSecond:size===1080?4800000:2600000,audioBitsPerSecond:160000});state.recorder=recorder;
+   recorder.ondataavailable=e=>{if(e.data&&e.data.size)state.recChunks.push(e.data);};
+   recorder.onerror=e=>{status('exportStatus','Falha de gravação: '+(e.error?.message||'Erro não identificado'),'error');state.cancelRequested=true;finishExport();};
+   recorder.onstop=()=>{
+     const canceled=state.cancelRequested,chunks=state.recChunks.slice(),type=state.recordMime;
+     cleanupExport();if(canceled)return;
+     if(!chunks.length){status('exportStatus','O navegador não conseguiu finalizar o vídeo.','error');return;}
+     const ext=type.startsWith('video/mp4')?'mp4':'webm';const blob=new Blob(chunks,{type:ext==='mp4'?'video/mp4':'video/webm'});
+     saveBlob(blob,filename(ext));
+     const warning=fmt==='mp4'&&ext!=='mp4'?' Seu dispositivo não grava MP4 nativo; o arquivo foi salvo como WebM.':'';
+     status('exportStatus',`✓ Vídeo gerado: ${size}×${Math.round(size*16/9)}, ${ext.toUpperCase()}, com a música original.${warning}`,warning?'warn':'good');
+   };
+   state.exporting=true;$('export').disabled=true;$('cancelExport').style.display='inline-flex';
+   $('progressWrap').classList.add('visible');$('progressFill').style.width='0%';
+   status('exportStatus','Gravando em tempo real. Deixe a tela ligada e não mude de aplicativo.');
+   if('wakeLock' in navigator){try{state.wakeLock=await navigator.wakeLock.request('screen');}catch{}}
+   recorder.start(1000);
+   await audio.play();
+ }catch(err){
+   state.cancelRequested=true;
+   try{if(state.recorder?.state!=='inactive')state.recorder.stop();}catch{}
+   cleanupExport();status('exportStatus','Falha ao começar: '+(err.message||err),'error');
+ }
 }
-function finishExport(){if(!state.exporting||!state.recorder)return;const recorder=state.recorder;if(recorder.state!=='inactive'){try{recorder.requestData();}catch{}try{recorder.stop();}catch{}}audio.pause();}
-function cleanupExport(){state.exporting=false;$('export').disabled=false;$('cancelExport').style.display='none';$('progressWrap').classList.remove('visible');state.recTracks.forEach(t=>{try{t.stop()}catch{}});state.recTracks=[];state.recorder=null;}
+function finishExport(){if(!state.exporting||!state.recorder)return;
+ const r=state.recorder;if(r.state!=='inactive'){try{r.requestData();}catch{}try{r.stop();}catch{}}audio.pause();
+}
+function cleanupExport(){
+ state.exporting=false;$('export').disabled=false;$('cancelExport').style.display='none';
+ $('progressWrap').classList.remove('visible');
+ for(const t of state.recTracks)try{t.stop()}catch{}
+ state.recTracks=[];state.recorder=null;state.exportCanvas=null;state.exportCtx=null;
+ if(state.wakeLock){state.wakeLock.release().catch(()=>{});state.wakeLock=null;}
+}
 function cancelExport(){if(!state.exporting)return;state.cancelRequested=true;finishExport();status('exportStatus','Exportação cancelada.','warn');}
+function saveLrc(){if(!state.lines.length){status('lyricsStatus','Primeiro transcreva ou insira a letra.','warn');return;}saveBlob(new Blob([printLrc(state.lines)],{type:'text/plain;charset=utf-8'}),filename('lrc'));}
+function saveSrt(){if(!state.lines.length){status('lyricsStatus','Primeiro transcreva ou insira a letra.','warn');return;}
+ const tm=t=>{t=Math.max(0,t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(t%60),ms=Math.floor((t%1)*1000);return [h,m,s].map(x=>String(x).padStart(2,'0')).join(':')+','+String(ms).padStart(3,'0');};
+ const srt=state.lines.map((l,i)=>`${i+1}\n${tm(l.time)} --> ${tm(i+1<state.lines.length?Math.max(l.time+.35,state.lines[i+1].time-.06):Math.min(state.duration,l.time+4))}\n${l.text}\n`).join('\n');
+ saveBlob(new Blob([srt],{type:'text/plain;charset=utf-8'}),filename('srt'));
+}
 // Events
 $('audioFile').addEventListener('change',e=>{if(e.target.files?.[0])setupAudio(e.target.files[0]);});
 const drop=$('drop');for(const ev of ['dragenter','dragover'])drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');});for(const ev of ['dragleave','drop'])drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');});drop.addEventListener('drop',e=>{const file=[...(e.dataTransfer?.files||[])].find(x=>x.type.startsWith('audio/')||/\.(mp3|m4a|wav|ogg|flac|aac)$/i.test(x.name));if(file)setupAudio(file);});
-audio.addEventListener('loadedmetadata',()=>{state.duration=Number.isFinite(audio.duration)?audio.duration:0;$('durationDisplay').value=fmt(state.duration);if(state.lines.length&&state.source==='estimated')setLines(estimateTimes(state.lines,state.duration),'estimated');status('musicStatus',`${state.file?.name||'Áudio'} • ${fmt(state.duration)} carregado. Buscando letra...`);});
+audio.addEventListener('loadedmetadata',()=>{state.duration=Number.isFinite(audio.duration)?audio.duration:0;$('durationDisplay').textContent=fmt(state.duration);if(state.lines.length&&state.source==='estimated')setLines(estimateTimes(state.lines,state.duration),'estimated');status('musicStatus',`${state.file?.name||'Áudio'} • ${fmt(state.duration)} carregado. IA pronta para analisar...`);});
 audio.addEventListener('error',()=>{if(state.file)status('musicStatus','O navegador não conseguiu decodificar este arquivo. Tente MP3 ou WAV.','error');});
 audio.addEventListener('ended',()=>{if(state.exporting)finishExport();});
-$('search').addEventListener('click',()=>searchLyrics(true));$('applyLyrics').addEventListener('click',applyLyrics);
+$('search').addEventListener('click',startBrowserTranscription);$('cancelAI').addEventListener('click',cancelAI);$('applyLyrics').addEventListener('click',applyLyrics);
 $('importLrc').addEventListener('click',()=>$('lrcFile').click());$('lrcFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;$('lyrics').value=await f.text();applyLyrics();});
-$('transcribe').addEventListener('click',()=>transcribe(false));$('tapSync').addEventListener('click',tapStart);$('tapNext').addEventListener('click',tapNext);
+$('saveLrc').addEventListener('click',saveLrc);$('saveSrt').addEventListener('click',saveSrt);$('tapSync').addEventListener('click',tapStart);$('tapNext').addEventListener('click',tapNext);
 $('play').addEventListener('click',playPause);$('back').addEventListener('click',()=>{if(state.file)audio.currentTime=Math.max(0,audio.currentTime-5)});$('forward').addEventListener('click',()=>{if(state.file)audio.currentTime=Math.min(state.duration,audio.currentTime+5)});
 $('seek').addEventListener('input',e=>{if(state.file&&!state.exporting)audio.currentTime=Number(e.target.value)/1000*state.duration});
 $('offset').addEventListener('input',e=>{state.offset=Number(e.target.value)/1000;$('offsetLabel').textContent=state.offset.toFixed(2)+' s';});
@@ -304,9 +453,14 @@ $('intensity').addEventListener('input',e=>$('intensityLabel').textContent=e.tar
 $('export').addEventListener('click',exportVideo);$('cancelExport').addEventListener('click',cancelExport);
 window.addEventListener('keydown',e=>{if(e.code==='Space'&&state.tap&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)){e.preventDefault();tapNext();}});
 window.addEventListener('beforeunload',e=>{if(state.exporting){e.preventDefault();e.returnValue='';}});
-inspectBackend();
+$('mobilePick').addEventListener('click',()=>$('audioFile').click());
+$('dockMusic').addEventListener('click',()=>$('audioFile').click());
+$('dockAI').addEventListener('click',()=>{document.querySelector('.controls').scrollIntoView({behavior:'smooth'});startBrowserTranscription();});
+$('dockExport').addEventListener('click',()=>{if(!state.file||!state.lines.length){document.querySelector('.controls').scrollIntoView({behavior:'smooth'});status('exportStatus','Selecione uma música e aguarde a transcrição antes de exportar.','warn');}else exportVideo();});
+// Prevent leaving while costly work is active.
+
 // Minimal QA interface for local automated tests; no external data is exposed.
-window.LyricCodeStudio={lrcParse,estimateTimes,getState:()=>({lines:state.lines.length,source:state.source,backend:state.backend,duration:state.duration,exporting:state.exporting}),setTestLines:(lines)=>setLines(lines,'synced')};
+window.LyricCodeStudio={lrcParse,estimateTimes,wordsToLines,getState:()=>({lines:state.lines.length,source:state.source,processing:state.processing,duration:state.duration,exporting:state.exporting}),setTestLines:(lines)=>setLines(lines,'synced')};
 })();
 </script>
 </body>

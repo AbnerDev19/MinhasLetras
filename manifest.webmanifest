@@ -1,0 +1,10 @@
+{
+  "name": "LyricCode AI Studio",
+  "short_name": "LyricCode",
+  "description": "Transcreva sua música e gere um vídeo animado com ela no celular.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d15",
+  "theme_color": "#090d15",
+  "icons": [{ "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }]
+}
