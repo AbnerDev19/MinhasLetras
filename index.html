@@ -37,8 +37,8 @@ button.s{background:#2a2a33}
 .caret{display:inline-block;width:.55em;height:1.05em;background:var(--cr);border-radius:3px;vertical-align:text-bottom;margin-left:.3em;box-shadow:0 0 12px var(--cr);animation:b 1s steps(1) infinite}
 @keyframes b{50%{opacity:.15}}
 body.clean .panel{display:none}
-body.clean .wrap{padding:0}
-body.clean .stage{width:min(100vw,calc(100vh*9/16));border-radius:0;border:0}
+body.clean .wrap{padding:0;min-height:100vh;min-height:100dvh;align-items:center;justify-content:center}
+body.clean .stage{width:min(100vw,calc(100dvh*9/16));border-radius:0;border:0}
 #tap{display:none;position:fixed;inset:0;z-index:5}
 body.clean.rec #tap{display:block}
 </style>
@@ -59,6 +59,7 @@ body.clean.rec #tap{display:block}
     <div class="row"><input type="checkbox" id="clean" checked><label for="clean" style="margin:0">Tela limpa ao gravar (esconde o painel)</label></div>
     <button id="rec">● Gravar tempos: toque no início de cada frase</button>
     <button id="play">▶ Tocar sincronizado</button>
+    <button class="s" id="fs">⛶ Ver em tela cheia</button>
     <button class="s" id="stop">Parar</button>
     <div id="st">1) Cole a letra. 2) Carregue a música. 3) Grave os tempos tocando na tela (ou Espaço) quando cada frase começar.</div>
   </div>
@@ -132,17 +133,19 @@ function reset(){
   blk.innerHTML='';blk.style.transform='none';idx=0;
   document.body.classList.remove('rec');
 }
+function goFull(){var e=document.documentElement;try{var p=e.requestFullscreen?e.requestFullscreen():(e.webkitRequestFullscreen&&e.webkitRequestFullscreen());if(p&&p.catch)p.catch(function(){})}catch(x){}}
+function outFull(){try{if(document.fullscreenElement)document.exitFullscreen();else if(document.webkitFullscreenElement)document.webkitExitFullscreen()}catch(x){}}
 function stop(msg){
   clearInterval(timer);if(audio)audio.pause();
   if(curLine)curLine.fin=true;
-  mode='idle';document.body.classList.remove('clean','rec');
+  mode='idle';document.body.classList.remove('clean','rec');outFull();
   if(msg)st.textContent=msg;
 }
 function begin(cb){
   parse();
   if(!items.length){st.textContent='Cole a letra primeiro.';return false}
   reset();
-  if($('clean').checked)document.body.classList.add('clean');
+  if($('clean').checked){document.body.classList.add('clean');goFull()}
   fit();
   if(audio){audio.currentTime=0;audio.play();t0=0;cb()}
   else{
@@ -178,6 +181,10 @@ $('play').onclick=function(){
   });
 };
 $('stop').onclick=function(){stop('Parado.')};
+$('fs').onclick=function(){document.body.classList.add('clean');goFull();fit();setTimeout(fit,300)};
+stage.addEventListener('dblclick',function(){if(mode!=='rec')stop('Parado.')});
+document.addEventListener('fullscreenchange',function(){fit();if(!document.fullscreenElement&&mode!=='idle')stop('Parado.')});
+window.addEventListener('resize',function(){setTimeout(fit,100)});
 $('tap').addEventListener('pointerdown',tap);
 stage.addEventListener('pointerdown',tap);
 document.addEventListener('keydown',function(e){
