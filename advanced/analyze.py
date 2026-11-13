@@ -14,14 +14,26 @@ def make_output(aligned, duration, name):
     for segment in aligned.get('segments', []):
         if not segment.get('words') and segment.get('text', '').strip():
             issues.append({'time': segment.get('start', 0), 'text': segment['text'], 'reason': 'Segmento sem palavras alinhadas: revise o texto completo'})
-        for word in segment.get('words', []):
+        seg_words = [w for w in segment.get('words', []) if str(w.get('word', '')).strip()]
+        ok = lambda w: all(isinstance(w.get(k), (int, float)) and math.isfinite(w[k]) for k in ('start', 'end')) and 0 <= w['start'] < w['end'] <= duration + .05
+        for idx, word in enumerate(seg_words):
             text = str(word.get('word', '')).strip()
-            start, end = word.get('start'), word.get('end')
-            if not text:
+            if not ok(word):
+                # Números/símbolos costumam vir sem tempo no WhisperX. Em vez de perder a palavra da letra,
+                # posiciona entre os vizinhos alinhados do MESMO segmento e avisa (interpolado, confirme).
+                prev = next((seg_words[j] for j in range(idx - 1, -1, -1) if ok(seg_words[j])), None)
+                nxt = next((seg_words[j] for j in range(idx + 1, len(seg_words)) if ok(seg_words[j])), None)
+                if prev and nxt and nxt['start'] - prev['end'] > .08:
+                    gap = [j for j in range(seg_words.index(prev) + 1, seg_words.index(nxt)) if not ok(seg_words[j])]
+                    slot = (nxt['start'] - prev['end']) / len(gap)
+                    pos = gap.index(idx)
+                    start, end = prev['end'] + slot * pos, prev['end'] + slot * (pos + 1)
+                    words.append({'text': text, 'start': start, 'end': end, 'score': None, 'interpolated': True})
+                    issues.append({'time': start, 'text': text, 'reason': 'Tempo interpolado entre palavras vizinhas: confirme', 'level': 'info'})
+                else:
+                    issues.append({'time': segment.get('start', 0), 'text': text, 'reason': 'Palavra sem alinhamento e sem vizinhas para interpolar: precisa de revisão'})
                 continue
-            if not all(isinstance(n, (int, float)) and math.isfinite(n) for n in (start, end)) or not 0 <= start < end <= duration + .05:
-                issues.append({'time': segment.get('start', 0), 'text': text, 'reason': 'Palavra sem alinhamento: precisa de revisão; não recebeu horário inventado'})
-                continue
+            start, end = word['start'], word['end']
             score = word.get('score')
             if score is not None and score < .5:
                 issues.append({'time': start, 'text': text, 'reason': 'Baixa pontuação de alinhamento; confirme o horário'})

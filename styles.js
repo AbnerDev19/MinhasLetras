@@ -11,11 +11,16 @@ const languages={
  sql:{label:'SQL',ext:'sql',head:'SELECT',open:" '",close:"' AS verso;"}
 };
 function program(text,language){
- const lang=languages[language]||languages.python,chars=Array.from(text),map=[0];let body='';
- for(const ch of chars){let out=ch;if(language==='html')out=({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]||ch);else if(language==='sql')out=ch==="'"?"''":ch;else out=ch==='\\'?'\\\\':ch==='"'?'\\"':ch==='\n'?'\\n':ch==='\r'?'\\r':ch==='\t'?'\\t':ch;body+=out;map.push(Array.from(body).length);}
+ const lang=languages[language]||languages.python,chars=Array.from(text),map=[0],glyphs=[];
+ const syn=(str,type)=>Array.from(str).map(ch=>({ch,type,src:-1}));
+ glyphs.push(...syn(lang.head,'blue'),...syn(lang.open,'white'));const prefix=glyphs.length;let body='';
+ chars.forEach((ch,i)=>{let out=ch;if(language==='html')out=({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]||ch);else if(language==='sql')out=ch==="'"?"''":ch;else out=ch==='\\'?'\\\\':ch==='"'?'\\"':ch==='\n'?'\\n':ch==='\r'?'\\r':ch==='\t'?'\\t':ch;
+  body+=out;for(const g of Array.from(out))glyphs.push({ch:g,type:'orange',src:i});map.push(Array.from(body).length);});
+ const close=syn(lang.close,'white');glyphs.push(...close);const total=glyphs.length;
  const tokens=[{type:'blue',text:lang.head},{type:'white',text:lang.open},{type:'orange',text:body},{type:'white',text:lang.close}];
- const prefix=Array.from(lang.head+lang.open).length,total=Array.from(lang.head+lang.open+body+lang.close).length;
- return {tokens,ext:lang.ext,reveal:n=>(prefix+map[Math.max(0,Math.min(chars.length,Math.floor(n)))]+(n>=chars.length?Array.from(lang.close).length:0))/total};
+ // quantos glifos já estão visíveis quando n caracteres da letra foram digitados
+ const count=n=>{const k=Math.max(0,Math.min(chars.length,Math.floor(n)));return prefix+map[k]+(n>=chars.length?close.length:0);};
+ return {tokens,glyphs,total,ext:lang.ext,count,reveal:n=>count(n)/total};
 }
 root.LyricStyles={languages,program};if(typeof module!=='undefined')module.exports=root.LyricStyles;
 })(globalThis);

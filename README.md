@@ -1,10 +1,48 @@
-# LyricCode Studio — versão 3
+# LyricCode Studio — versão 4
+
+## Novidades da versão 4
+
+### Reconhecimento além dos 24 segundos
+Os blocos fixos de 20 s (o primeiro cobria só 0–24 s) foram trocados por uma varredura que avança pela **última palavra aceita**, como o Whisper original. Se o modelo para no meio da janela, a próxima começa exatamente ali.
+- A última palavra de cada janela vinha com fim `null` e era **descartada**; agora o início real é mantido e só o fim é estimado.
+- Palavras coladas no corte da janela são reanalisadas com contexto, em vez de truncadas.
+- Janela que falha é repetida com 10 s; se ainda falhar, vira aviso e a análise continua (antes tudo era abortado). Falta de memória continua abortando.
+- Trechos de 6 s ou mais com áudio e sem palavras são reanalisados em janelas curtas; o que restar é listado em "pontos para revisar".
+- Frases típicas de alucinação do Whisper em silêncio ("Legendas pela comunidade Amara.org" etc.) são descartadas; silêncio digital não chama o modelo.
+- Limite de análise local: 30 min. Modelo carrega com encoder fp32 (melhor tempo por palavra) e cai para q8 se não couber.
+- Funciona mesmo se o navegador não informar a duração do arquivo (antes o botão não fazia nada).
+
+### Tempo de cada palavra
+Nenhum software garante 100% em música cantada; o que foi feito para reduzir e expor erros:
+- Sem sobreposição, sem ordem trocada e duração mínima garantidos por código (testado).
+- **Refinar início pela energia** (opção na aba Música; liga sozinha ao usar voz isolada): ajusta o início a até 150 ms para o ataque de energia mais forte e encurta o fim antes de pausas. Só age com evidência clara. Em música cheia ajuda pouco; com voz isolada ajuda mais.
+- A digitação acontece no **início** da palavra (antes era esticada por toda a nota sustentada) e a palavra cantada no momento fica destacada no vídeo, então um erro de tempo fica visível na hora.
+- Cada palavra do editor tem ▶ para ouvir só aquele trecho (−0,25 s/+0,25 s).
+- `advanced/analyze.py`: números/símbolos sem tempo no WhisperX agora são interpolados entre vizinhas e marcados (`interpolated`), em vez de sumirem da letra.
+- Para a maior precisão possível continue usando o modo avançado (WhisperX + voz isolada) e revise os trechos sinalizados.
+
+### Animações (novo `renderer.js`)
+- Partículas estavam amontoadas num canto por causa da função de hash; agora distribuídas e com deriva suave.
+- Transições contínuas calculadas a partir do horário das frases: rolagem suave no Editor/Terminal (antes saltava), cena que sai/entra na Câmera flutuante (antes sumia de repente a cada 5 frases), dissolução entre frases no modo Destaque.
+- Frases longas quebram em várias linhas em vez de encolher a fonte; fonte maior e constante.
+- Depois do fim da frase a tela mostra `// instrumental` em vez de manter a última frase para sempre.
+- Terminal com janela e prompt; Editor com números de linha e linha atual; vibração cromática na entrada da frase (opção Glitches).
+- Limitador de 30 fps corrigido (descartava quadros em telas de 60 Hz); relógio de reprodução interpolado entre leituras de `currentTime`.
+- Sem `ctx.filter` (não existe no Safari); renderização determinística: o mesmo tempo gera sempre o mesmo quadro.
+
+### Testes (Node)
+`node test-timing.cjs && node test-quality.cjs && node test-long.cjs && node test-refine.cjs && node test-render.cjs && node test-recorder.cjs && node test-app.cjs`
+
+`test-long.cjs` usa um Whisper simulado que para cedo, devolve fim nulo e alucina. **Não** foram executados aqui os modelos reais, um navegador real nem gravação MP4/WebM; portanto a melhora de precisão em músicas reais não foi medida.
+
+---
+## Documentação da versão 3 (ainda válida onde não conflita com a v4)
 
 Esta atualização contém o site estático completo, sem chave de API, e uma ferramenta Python avançada opcional.
 
 ## Publicar / atualizar
 
-Extraia este ZIP e substitua **todos** os arquivos no repositório usado na Vercel, incluindo as pastas. Mantenha `index.html` na raiz. Não envie apenas o HTML: ele depende de `timing.js`, `styles.js`, `recorder.js`, `asr-quality.js`, `transcriber.worker.js` e `fonts/`.
+Extraia este ZIP e substitua **todos** os arquivos no repositório usado na Vercel, incluindo as pastas. Mantenha `index.html` na raiz. Não envie apenas o HTML: ele depende de `timing.js`, `styles.js`, `recorder.js`, `asr-quality.js`, `renderer.js`, `transcriber.worker.js` e `fonts/`.
 
 Para hospedagem estática, use preset Other, sem comando de build. A pasta `advanced` contém ferramentas de computador; ela não cria um servidor de IA na Vercel.
 
