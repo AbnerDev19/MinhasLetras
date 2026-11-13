@@ -3,15 +3,8 @@ let busy = false;
 const report = (percent, message) => self.postMessage({ type: 'progress', percent, message });
 
 async function loadModel(pipeline, kind, onFile) {
-  // Encoder em fp32 melhora os tempos por palavra; se o arquivo não existir/couber, cai para q8.
-  const attempts = kind === 'small' ? [{ encoder_model: 'q8', decoder_model_merged: 'q8' }]
-    : [{ encoder_model: 'fp32', decoder_model_merged: 'q8' }, 'q8'];
-  let last;
-  for (const dtype of attempts) {
-    try { return await pipeline('automatic-speech-recognition', `Xenova/whisper-${kind}`, { device: 'wasm', dtype, progress_callback: onFile }); }
-    catch (e) { last = e; }
-  }
-  throw last;
+  // Mesma configuração da v3 (q8 em tudo). A mistura fp32/q8 da v4 podia piorar o reconhecimento.
+  return pipeline('automatic-speech-recognition', `Xenova/whisper-${kind}`, { device: 'wasm', dtype: 'q8', progress_callback: onFile });
 }
 
 self.onmessage = async ({ data }) => {
@@ -40,6 +33,7 @@ self.onmessage = async ({ data }) => {
       isCancelled: () => false
     });
     let words = out.words, issues = out.issues.slice();
+    issues.unshift({ time: 0, level: 'info', reason: `Diagnóstico: áudio de ${duration.toFixed(1)} s, ${out.calls} chamadas ao modelo, ${words.length} palavras, de ${words[0]?.start.toFixed(1)} s a ${words.at(-1)?.end.toFixed(1)} s.` });
     if (!words.length) throw Error('Não foram encontrados tempos utilizáveis. Tente voz isolada, modelo Small ou análise avançada.');
     if (data.refine) {
       report(94, 'Refinando início das palavras pela energia do áudio…');

@@ -9,7 +9,7 @@ Os blocos fixos de 20 s (o primeiro cobria só 0–24 s) foram trocados por uma 
 - Janela que falha é repetida com 10 s; se ainda falhar, vira aviso e a análise continua (antes tudo era abortado). Falta de memória continua abortando.
 - Trechos de 6 s ou mais com áudio e sem palavras são reanalisados em janelas curtas; o que restar é listado em "pontos para revisar".
 - Frases típicas de alucinação do Whisper em silêncio ("Legendas pela comunidade Amara.org" etc.) são descartadas; silêncio digital não chama o modelo.
-- Limite de análise local: 30 min. Modelo carrega com encoder fp32 (melhor tempo por palavra) e cai para q8 se não couber.
+- Limite de análise local: 30 min. Modelo q8, igual à v3 (a mistura fp32/q8 testada na v4 foi revertida).
 - Funciona mesmo se o navegador não informar a duração do arquivo (antes o botão não fazia nada).
 
 ### Tempo de cada palavra

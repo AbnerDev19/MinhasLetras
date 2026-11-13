@@ -225,6 +225,9 @@ function setupAudio(file){
  updateAIProgress(3,'Recebendo áudio...');
  // O primeiro clique do usuário já ocorreu ao escolher o arquivo.
  setAIActive(false);renderEditor();
+ // Decodifica já na seleção: mostra a duração REAL do arquivo e avisa se o player enxerga outra.
+ decodeOriginal().then(b=>{if(state.file!==file)return;const el=audio.duration;
+  status('musicStatus',`${file.name} • ${fmt(b.duration)} (${b.duration.toFixed(1)} s) decodificados.`+(Number.isFinite(el)&&Math.abs(el-b.duration)>1?` Atenção: o player informa ${el.toFixed(1)} s. Converta o arquivo para MP3/WAV.`:' Pronto para transcrever.'),Number.isFinite(el)&&Math.abs(el-b.duration)>1?'warn':'');}).catch(e=>{if(state.file===file)status('musicStatus','Não consegui decodificar o áudio: '+(e.message||e)+' Tente MP3 ou WAV.','error');});
 }
 function updateAIProgress(percent,description){
  $('aiProgressWrap').classList.add('visible');$('aiProgressFill').style.width=Math.max(0,Math.min(100,percent))+'%';
@@ -273,7 +276,7 @@ async function startBrowserTranscription(){
          if(!lines.length){reject(new Error('O Whisper não identificou palavras com tempos utilizáveis. Tente outro arquivo ou importe uma letra .LRC.'));return;}
          if(!setLines(lines,'transcribed')){reject(new Error('Tempos inconsistentes retornados pelo modelo. Tente outro modelo ou marque os tempos.'));return;}
          state.quality=m.issues||[];renderQuality();
-         status('musicStatus',`✓ Transcrição local concluída: ${lines.length} frases. Revise as palavras e a sincronização.`, 'good');
+         status('musicStatus',`✓ Transcrição concluída: ${lines.length} frases, de ${fmt(lines[0].time)} a ${fmt(lines.at(-1).end||lines.at(-1).time)} (áudio de ${fmt(state.duration)}). Revise as palavras e a sincronização.`, 'good');
          status('lyricsStatus','A IA extraiu a letra e os horários. Revise os versos antes de gerar o vídeo.','good');
          resolve();
        }
@@ -352,10 +355,12 @@ async function exportVideo(){
   const ext=result.blob.type.startsWith('video/mp4')?'mp4':'webm';
   if(state.downloadURL)URL.revokeObjectURL(state.downloadURL);state.downloadURL=URL.createObjectURL(result.blob);
   const link=$('downloadVideo');link.href=state.downloadURL;link.download=filename(ext);link.hidden=false;link.textContent=`Baixar vídeo completo (${fmt(result.duration)})`;
-  status('exportStatus',`Gravação concluída após reproduzir o áudio inteiro: ${fmt(result.duration)}. Saída ${ext.toUpperCase()}. Toque em Baixar vídeo completo.`,'good');
+  const probed=await probeDuration(result.blob),short=Number.isFinite(probed)&&probed<result.duration-2;
+  status('exportStatus',short?`Atenção: o arquivo gravado tem ${probed.toFixed(1)} s, mas o áudio tem ${result.duration.toFixed(1)} s. O navegador cortou a gravação; tente WebM, 720p, ou outro navegador.`:`Gravação concluída: áudio de ${fmt(result.duration)}${Number.isFinite(probed)?`, arquivo de ${probed.toFixed(1)} s`:''}. Saída ${ext.toUpperCase()}. Toque em Baixar vídeo completo.`,short?'error':'good');
  }catch(e){status('exportStatus',e.message||String(e),'error');}
  finally{cleanupExport();}
 }
+function probeDuration(blob){return new Promise(res=>{const v=document.createElement('video'),url=URL.createObjectURL(blob);let done=false;const end=d=>{if(done)return;done=true;URL.revokeObjectURL(url);res(d);};v.preload='metadata';v.muted=true;v.onloadedmetadata=()=>{if(Number.isFinite(v.duration))end(v.duration);else{v.ontimeupdate=()=>end(v.duration);v.currentTime=1e7;}};v.onerror=()=>end(NaN);setTimeout(()=>end(NaN),5000);v.src=url;});}
 function cleanupExport(){
  if(state.exportJob&&!['done','failed'].includes(state.exportJob.phase))state.exportJob.cancel();
  state.exportJob=null;state.exporting=false;lockEditing(false);$('cancelExport').style.display='none';$('progressWrap').classList.remove('visible');state.exportCanvas=null;state.exportCtx=null;
